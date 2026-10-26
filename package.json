@@ -2,9 +2,11 @@
   "name": "tmrx-global-backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "test": "echo 'Hello, testing'"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +20,6 @@
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "mongoose": "^9.11.4",
-    "nodemon": "^3.1.14",
     "ws": "^8.22.0"
   }
 }
