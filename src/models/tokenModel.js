@@ -11,6 +11,10 @@ const tokenSchema = new mongoose.Schema(
         user: {
             type: String,
             required: true
+        },
+        purpose:{
+            type: String,
+            default: "email-verification"
         }
     },
     {
@@ -18,10 +22,10 @@ const tokenSchema = new mongoose.Schema(
     }
 );
 
-// Expire tokens 1000 seconds after creation.
+// Expire tokens 300 seconds after creation.
 tokenSchema.index(
     { createdAt: 1 },
-    { expireAfterSeconds: 1800 }
+    { expireAfterSeconds: 300 }
 );
 
 const Token = mongoose.model("Token", tokenSchema);
