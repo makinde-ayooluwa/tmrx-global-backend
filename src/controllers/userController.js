@@ -4,6 +4,13 @@ exports.getUser = async(req, res)=>{
     const {id} = req.body;
     try {
         const user = await User.findById(id);
+        if(!user){
+return res.status(500).json({
+            status: false,
+            message: "Profile does not exists",
+            data: user
+        });
+        }
         return res.status(200).json({
             status: true,
             message: "Profile data fetched successfully",

@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
     email_verified: {
         type: Boolean,
         default: false
+    },
+    wallet: {
+        type: Number,
+        default: 0
     }
 });
 
