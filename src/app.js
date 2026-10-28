@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const authRouter = require("./routes/authRoutes");
+const userRouter = require("./routes/userRoutes");
 
 const app = express();
 app.use(express.json())
@@ -20,6 +21,7 @@ app.use((req, res, next) => {
     next();
 });
 app.use("/auth", authRouter);
+app.use("/user", userRouter);
 app.get("/", (req, res) => {
     res.status(200).json({
         status: true,
