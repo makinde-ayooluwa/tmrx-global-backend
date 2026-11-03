@@ -1,7 +1,9 @@
 const { RestClientV5 } = require("bybit-api");
 
 const client = new RestClientV5({
-    testnet: true
+    testnet: true,
+    secret: process.env.BYBIT_SECRET_KEY,
+    key: process.env.BYBIT_API_KEY
 });
 
 const getTickers = async (category = "spot") => {
@@ -19,5 +21,17 @@ const getTickers = async (category = "spot") => {
         throw error;
     }
 };
+const getWalletBalance = async () => {
+    try {
+        const response = await client.getWalletBalance({
+            accountType: "UNIFIED"
+        });
 
-module.exports = { getTickers };
+        return response.result.list;
+
+    } catch (error) {
+        console.error("Bybit wallet error:", error.message);
+        throw error;
+    }
+};
+module.exports = { getTickers, getWalletBalance };

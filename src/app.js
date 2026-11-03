@@ -4,6 +4,8 @@ const authRouter = require("./routes/authRoutes");
 const userRouter = require("./routes/userRoutes");
 const currencyRouter = require("./routes/currencyRoutes")
 const paymentRouter = require("./routes/paymentRoutes")
+const orderRouter = require("./routes/orderRoutes")
+const bybitRoute = require("./routes/bybitRoutes")
 const app = express();
 app.use(express.json())
 app.use(cors({
@@ -25,6 +27,8 @@ app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/currency", currencyRouter);
 app.use("/payment", paymentRouter);
+app.use("/order", orderRouter);
+app.use("/bybit", bybitRoute);
 app.get("/", (req, res) => {
     res.status(200).json({
         status: true,
