@@ -42,7 +42,7 @@ const subscribeToAllMarkets = async () => {
             )
             .map((coin) => `tickers.${coin.symbol}`);
 
-        console.log(`Subscribing to ${symbols.length} USDT markets`);
+        // console.log(`Subscribing to ${symbols.length} USDT markets`);
 
         // Subscribe in batches to avoid oversized subscription requests.
         const batchSize = 10;

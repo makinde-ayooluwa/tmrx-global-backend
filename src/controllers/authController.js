@@ -2,6 +2,7 @@ const User = require("../models/userModel");
 const { generateToken } = require("../utils/token");
 const sendMail = require("../utils/mailer");
 const Token = require("../models/tokenModel");
+const { createSession } = require("../middleware/authMiddleware");
 const register = async (req, res) => {
     try {
         const { fullname, email, phone, password } = req.body;
@@ -96,34 +97,44 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
         const exists = await User.findOne({ email });
+
         if (!exists) {
-            return res.status(500).json({
+            return res.status(401).json({
                 status: false,
-                message: "Login failed"
-            })
+                message: "Invalid email or password"
+            });
         }
+
         const isMatch = await exists.comparePassword(password);
+
         if (!isMatch) {
             return res.status(401).json({
                 status: false,
                 message: "Invalid email or password"
             });
         }
+
+        const token = createSession(exists._id);
+
+console.log("New session created:", token);
         return res.status(200).json({
             status: true,
             message: "Login successful",
+            token,
             _id: exists._id
-        })
+        });
+
     } catch (error) {
         console.log(error);
+
         return res.status(500).json({
             status: false,
             message: "Internal server error"
-        })
-
+        });
     }
-}
+};
 const verifyEmail = async (req, res) => {
     try {
         const { code, email } = req.body;

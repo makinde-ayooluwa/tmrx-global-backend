@@ -35,7 +35,7 @@ const initializeFrontendSocket = (server) => {
 //     });
 // };
 const broadcastMarketData = (data) => {
-    console.log("BROADCASTING:", data);
+    // console.log("BROADCASTING:", data);
 
     if (!wss) {
         console.log("WebSocket server not initialized");
