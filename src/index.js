@@ -17,7 +17,7 @@ require("./services/bybitSocket");
 const startServer = async () => {
     await connectDb();
 
-    const server = app.listen(ENV.SERVER_PORT ?? 8000, () => {
+    const server = app.listen(ENV.SERVER_PORT ?? 8000,"0.0.0.0", () => {
         console.log(`Server listening on port ${ENV.SERVER_PORT ?? 8000}`);
     });
 
