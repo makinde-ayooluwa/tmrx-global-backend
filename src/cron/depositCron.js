@@ -1,6 +1,7 @@
 
 const { CronJob } = require("cron");
 const Deposit = require("../models/depositModel");
+const Order = require("../models/orderModel");
 const { verifyDeposit } = require("../services/depositVerification");
 
 let isProcessingDeposits = false;
@@ -69,9 +70,49 @@ const processPendingDeposits = async () => {
                 console.log("No more deposits are due.");
                 break;
             }
+const order = await Order.findById(deposit.order);
 
+if (!order) {
+    await Deposit.updateOne(
+        { _id: deposit._id, status: "verifying" },
+        {
+            $set: {
+                status: "rejected",
+                claimedAt: null,
+                verificationMessage: "Associated sell order not found."
+            }
+        }
+    );
+
+    console.log(`Deposit ${deposit._id}: associated order not found.`);
+    continue;
+}
             console.log(`Claimed deposit: ${deposit._id}`);
-
+await Order.updateOne(
+    {
+        _id: order._id,
+        status: "pending"
+    },
+    {
+        $set: {
+            status: "processing",
+            claimedAt: new Date()
+        }
+    }
+);
+await Order.updateOne(
+    {
+        _id: order._id,
+        status: "processing"
+    },
+    {
+        $set: {
+            status: "pending",
+            claimedAt: null,
+            nextProcessingAt: nextVerificationAt
+        }
+    }
+);
             try {
                 const verification = await verifyDeposit({
                     coin: deposit.coin,

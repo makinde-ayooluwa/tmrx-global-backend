@@ -8,6 +8,7 @@ const createOrder = async (req, res) => {
             type,
             coin,
             coinAmount,
+            network,
             marketPriceUsd,
             exchangeRate
         } = req.body;
@@ -21,7 +22,22 @@ const createOrder = async (req, res) => {
                 message: "Invalid order type."
             });
         }
+const supportedNetworks = {
+    USDT: ["TRC20", "ERC20", "BEP20"],
+    BTC: ["BITCOIN"],
+    ETH: ["ERC20"]
+};
 
+if (type === "sell") {
+    const coinNetworks = supportedNetworks[coin?.toUpperCase()];
+
+    if (!coinNetworks || !coinNetworks.includes(network?.toUpperCase())) {
+        return res.status(400).json({
+            status: false,
+            message: "Unsupported network for this coin."
+        });
+    }
+}
         // Validate coin
         if (
             typeof coin !== "string" ||
@@ -93,6 +109,7 @@ const createOrder = async (req, res) => {
             reference,
             type,
             coin: coin.toUpperCase(),
+            network: type === "sell" ? network?.toUpperCase() : null,
             coinAmount: amount,
             marketPriceUsd: usdPrice,
             exchangeRate: nairaRate,

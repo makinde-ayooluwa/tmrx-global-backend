@@ -40,7 +40,12 @@ const orderSchema = new mongoose.Schema({
         required: true,
         uppercase: true
     },
-
+    network: {
+        type: String,
+        uppercase: true,
+        trim: true,
+        default: null
+    },
     coinAmount: {
         type: mongoose.Schema.Types.Decimal128,
         required: true
@@ -103,9 +108,9 @@ const orderSchema = new mongoose.Schema({
         default: null
     },
     claimedAt: {
-    type: Date,
-    default: null
-},
+        type: Date,
+        default: null
+    },
     nextProcessingAt: {
         type: Date,
         default: Date.now

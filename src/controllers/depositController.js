@@ -68,7 +68,7 @@ const createDeposit = async (req, res) => {
             user: userId,
             order: order._id,
             coin: order.coin,
-            network: "PENDING_CONFIGURATION",
+            network: order.network,
             txId: txId.trim(),
             amount: order.coinAmount,
             depositAddress: "",
@@ -90,13 +90,20 @@ const createDeposit = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Create deposit error:", error);
+    console.error("Create deposit error:", error);
 
-        return res.status(500).json({
+    if (error.code === 11000) {
+        return res.status(409).json({
             status: false,
-            message: "Unable to submit transaction ID."
+            message: "A deposit with this order or transaction ID already exists."
         });
     }
+
+    return res.status(500).json({
+        status: false,
+        message: "Unable to submit transaction ID."
+    });
+}
 };
 const getDepositHistory = async (req, res) => {
     try {

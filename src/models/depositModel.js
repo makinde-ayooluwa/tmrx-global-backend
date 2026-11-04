@@ -135,7 +135,10 @@ depositSchema.index({
     status: 1,
     nextVerificationAt: 1
 });
-
+depositSchema.index(
+    { order: 1 },
+    { unique: true }
+);
 const Deposit = mongoose.model("deposits", depositSchema);
 
 module.exports = Deposit;

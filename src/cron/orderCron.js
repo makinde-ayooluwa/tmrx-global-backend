@@ -25,8 +25,9 @@ const processPendingOrders = async () => {
 
         const recovered = await Order.updateMany(
             {
-                status: "processing",
-                claimedAt: { $lte: staleTime }
+                type: "buy",
+    status: "processing",
+    claimedAt: { $lte: staleTime }
             },
             {
                 $set: {
@@ -49,8 +50,11 @@ const processPendingOrders = async () => {
             // Atomically claim one due order.
             const order = await Order.findOneAndUpdate(
                 {
-                    status: "pending",
-                    nextProcessingAt: { $lte: now }
+                    
+    type: "buy",
+    status: "pending",
+    nextProcessingAt: { $lte: now }
+
                 },
                 {
                     $set: {
