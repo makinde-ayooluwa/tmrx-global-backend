@@ -108,7 +108,8 @@ const createOrder = async (req, res) => {
             status: true,
             message: "Demo order created successfully.",
             data: {
-                reference: order.reference,
+                 _id: order._id,
+    reference: order.reference,
                 type: order.type,
                 coin: order.coin,
                 coinAmount: order.coinAmount.toString(),
@@ -136,25 +137,29 @@ const getOrderHistory = async (req, res) => {
 
         const orders = await Order.find({ user: userId })
             .select(
-                "reference type coin coinAmount orderAmount processingFee processingFeeRate finalAmount status createdAt"
-            )
+    "reference type coin coinAmount orderAmount processingFee processingFeeRate finalAmount status createdAt processingAttempts lastProcessingAttempt nextProcessingAt processingHistory"
+)
             .sort({ createdAt: -1 })
             .lean();
 
         const formattedOrders = orders.map((order) => ({
-            _id: order._id,
-            reference: order.reference,
-            type: order.type,
-            coin: order.coin,
-            coinAmount: order.coinAmount.toString(),
-            orderAmount: order.orderAmount,
-            processingFee: order.processingFee,
-            processingFeeRate: order.processingFeeRate,
-            finalAmount: order.finalAmount,
-            status: order.status,
-            date: order.createdAt,
-            category: "Order"
-        }));
+    _id: order._id,
+    reference: order.reference,
+    type: order.type,
+    coin: order.coin,
+    coinAmount: order.coinAmount.toString(),
+    orderAmount: order.orderAmount,
+    processingFee: order.processingFee,
+    processingFeeRate: order.processingFeeRate,
+    finalAmount: order.finalAmount,
+    status: order.status,
+    processingAttempts: order.processingAttempts,
+    lastProcessingAttempt: order.lastProcessingAttempt,
+    nextProcessingAt: order.nextProcessingAt,
+    processingHistory: order.processingHistory,
+    date: order.createdAt,
+    category: "Order"
+}));
 
         return res.status(200).json({
             status: true,

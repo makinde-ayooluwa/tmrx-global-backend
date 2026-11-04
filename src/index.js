@@ -3,7 +3,8 @@ const app = require("./app");
 const { ENV } = require("./constants/env");
 const connectDb = require("./config/db");
 const path = require("path");
-
+const depositCron = require("./cron/depositCron")
+const orderCron = require("./cron/orderCron");
 dotenv.config({
     path: path.resolve(__dirname, "../.env"),
 });
@@ -16,11 +17,12 @@ require("./services/bybitSocket");
 
 const startServer = async () => {
     await connectDb();
-
-    const server = app.listen(ENV.SERVER_PORT ?? 8000,"0.0.0.0", () => {
+    const server = app.listen(ENV.SERVER_PORT ?? 8000, "0.0.0.0", () => {
         console.log(`Server listening on port ${ENV.SERVER_PORT ?? 8000}`);
     });
 
+    depositCron.start();
+    orderCron.start()
     initializeFrontendSocket(server);
 };
 

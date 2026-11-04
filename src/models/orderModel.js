@@ -1,6 +1,22 @@
 
 const mongoose = require("mongoose");
 
+const processingHistorySchema = new mongoose.Schema({
+    status: {
+        type: String,
+        enum: ["pending", "processing", "completed", "rejected", "error"],
+        default: "pending"
+    },
+    message: {
+        type: String,
+        default: ""
+    },
+    checkedAt: {
+        type: Date,
+        default: Date.now
+    }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
     user: {
         type: String,
@@ -75,10 +91,38 @@ const orderSchema = new mongoose.Schema({
             "cancelled"
         ],
         default: "pending"
+    },
+
+    processingAttempts: {
+        type: Number,
+        default: 0
+    },
+
+    lastProcessingAttempt: {
+        type: Date,
+        default: null
+    },
+    claimedAt: {
+    type: Date,
+    default: null
+},
+    nextProcessingAt: {
+        type: Date,
+        default: Date.now
+    },
+
+    processingHistory: {
+        type: [processingHistorySchema],
+        default: []
     }
 
 }, {
     timestamps: true
+});
+
+orderSchema.index({
+    status: 1,
+    nextProcessingAt: 1
 });
 
 const Order = mongoose.model("orders", orderSchema);

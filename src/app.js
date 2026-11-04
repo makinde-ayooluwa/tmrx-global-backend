@@ -6,10 +6,12 @@ const currencyRouter = require("./routes/currencyRoutes")
 const paymentRouter = require("./routes/paymentRoutes")
 const orderRouter = require("./routes/orderRoutes")
 const bybitRoute = require("./routes/bybitRoutes")
+const depositRoute = require("./routes/depositRoutes")
+
 const app = express();
 app.use(express.json())
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173","http://192.168.0.200:5173"],
     credentials: true
 }));
 app.use((req, res, next) => {
@@ -29,6 +31,7 @@ app.use("/currency", currencyRouter);
 app.use("/payment", paymentRouter);
 app.use("/order", orderRouter);
 app.use("/bybit", bybitRoute);
+app.use("/deposit", depositRoute);
 app.get("/", (req, res) => {
     res.status(200).json({
         status: true,
