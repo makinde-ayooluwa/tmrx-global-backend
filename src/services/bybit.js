@@ -34,4 +34,32 @@ const getWalletBalance = async () => {
         throw error;
     }
 };
+async function getSupportedNetworks() {
+  try {
+    // Call getCoinInfo (you can pass { coin: 'USDT' } for a specific coin, or leave it empty to fetch all)
+    const response = await client.getCoinInfo();
+
+    if (response.retCode === 0) {
+      const rows = response.result.rows;
+      const supportedNetworksMap = {};
+
+      // Map through each coin and pull its supported chains
+      rows.forEach((item) => {
+        const coinSymbol = item.coin;
+        const chains = item.chains.map((c) => c.chain);
+        supportedNetworksMap[coinSymbol] = chains;
+      });
+
+      console.log("Supported Networks Map:", supportedNetworksMap);
+      return supportedNetworksMap;
+    } else {
+      console.error("Bybit API Error:", response.retMsg);
+    }
+  } catch (error) {
+    console.error("Failed to fetch networks:", error);
+  }
+}
+
+// Call the function
+getSupportedNetworks();
 module.exports = { getTickers, getWalletBalance };
