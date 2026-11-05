@@ -1,4 +1,4 @@
-const { getWalletBalance } = require("../services/bybit");
+const { getWalletBalance, getSupportedNetworksArray } = require("../services/bybit");
 
 const testBybitConnection = async (req, res) => {
     try {
@@ -21,5 +21,22 @@ const testBybitConnection = async (req, res) => {
         });
     }
 };
-
-module.exports = { testBybitConnection };
+const getSupportedNetworks = async (req, res) => {
+  try {
+    const networksData = await getSupportedNetworksArray();
+    
+    return res.status(200).json({
+      success: true,
+      count: networksData.length,
+      data: networksData
+    });
+  } catch (error) {
+    console.error("Bybit Network Controller Error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching crypto networks",
+      error: error.message
+    });
+  }
+};
+module.exports = { testBybitConnection, getSupportedNetworks };

@@ -1,7 +1,7 @@
 const { RestClientV5 } = require("bybit-api");
 
 const client = new RestClientV5({
-    testnet: true,
+    testnet: false,
     secret: process.env.BYBIT_SECRET_KEY,
     key: process.env.BYBIT_API_KEY
 });
@@ -34,32 +34,29 @@ const getWalletBalance = async () => {
         throw error;
     }
 };
-async function getSupportedNetworks() {
+async function getSupportedNetworksArray() {
   try {
-    // Call getCoinInfo (you can pass { coin: 'USDT' } for a specific coin, or leave it empty to fetch all)
     const response = await client.getCoinInfo();
 
     if (response.retCode === 0) {
       const rows = response.result.rows;
-      const supportedNetworksMap = {};
 
-      // Map through each coin and pull its supported chains
-      rows.forEach((item) => {
-        const coinSymbol = item.coin;
-        const chains = item.chains.map((c) => c.chain);
-        supportedNetworksMap[coinSymbol] = chains;
-      });
+      // Transform rows into a clean array of objects
+      const networksArray = rows.map((item) => ({
+        symbol: item.coin,
+        name: item.name || item.coin,
+        networks: item.chains.map((c) => c.chain),
+      }));
 
-      console.log("Supported Networks Map:", supportedNetworksMap);
-      return supportedNetworksMap;
+      console.log("Supported Networks Array:", networksArray);
+      return networksArray;
     } else {
       console.error("Bybit API Error:", response.retMsg);
+      return [];
     }
   } catch (error) {
     console.error("Failed to fetch networks:", error);
+    return [];
   }
 }
-
-// Call the function
-getSupportedNetworks();
-module.exports = { getTickers, getWalletBalance };
+module.exports = { getTickers, getWalletBalance, getSupportedNetworksArray };
