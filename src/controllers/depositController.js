@@ -53,6 +53,7 @@ const createDeposit = async (req, res) => {
 
         // Prevent reuse of a transaction ID
         const existingTxId = await Deposit.findOne({
+            network: order.network,
             txId: txId.trim()
         });
 
@@ -80,30 +81,34 @@ const createDeposit = async (req, res) => {
             status: true,
             message: "Transaction ID submitted successfully. Awaiting verification.",
             data: {
-                _id: deposit._id,
-                order: deposit.order,
-                txId: deposit.txId,
-                coin: deposit.coin,
-                amount: deposit.amount.toString(),
-                status: deposit.status
-            }
+    _id: deposit._id,
+    order: deposit.order,
+    txId: deposit.txId,
+    coin: deposit.coin,
+    network: deposit.network,
+    amount: deposit.amount.toString(),
+    status: deposit.status,
+    settlementStatus: deposit.settlementStatus,
+    deliveryStatus: deposit.deliveryStatus,
+    verificationMessage: deposit.verificationMessage
+}
         });
 
     } catch (error) {
-    console.error("Create deposit error:", error);
+        console.error("Create deposit error:", error);
 
-    if (error.code === 11000) {
-        return res.status(409).json({
+        if (error.code === 11000) {
+            return res.status(409).json({
+                status: false,
+                message: "A deposit with this order or transaction ID already exists."
+            });
+        }
+
+        return res.status(500).json({
             status: false,
-            message: "A deposit with this order or transaction ID already exists."
+            message: "Unable to submit transaction ID."
         });
     }
-
-    return res.status(500).json({
-        status: false,
-        message: "Unable to submit transaction ID."
-    });
-}
 };
 const getDepositHistory = async (req, res) => {
     try {

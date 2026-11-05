@@ -14,17 +14,17 @@ app.use(cors({
     origin: ["http://localhost:5173","http://192.168.0.200:5173"],
     credentials: true
 }));
-app.use((req, res, next) => {
-    const start = Date.now();
+// app.use((req, res, next) => {
+//     const start = Date.now();
 
-    res.on("finish", () => {
-        console.log(
-            `${req.method} ${req.originalUrl} - ${res.statusCode} - ${Date.now() - start}ms`
-        );
-    });
+//     res.on("finish", () => {
+//         console.log(
+//             `${req.method} ${req.originalUrl} - ${res.statusCode} - ${Date.now() - start}ms`
+//         );
+//     });
 
-    next();
-});
+//     next();
+// });
 app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/currency", currencyRouter);
@@ -39,6 +39,4 @@ app.get("/", (req, res) => {
     })
     // console.log(req.url)
 })
-
-
 module.exports = app;

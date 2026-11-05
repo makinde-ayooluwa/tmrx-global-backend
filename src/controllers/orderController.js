@@ -134,7 +134,8 @@ if (type === "sell") {
                 processingFee: order.processingFee,
                 processingFeeRate: order.processingFeeRate,
                 finalAmount: order.finalAmount,
-                status: order.status
+                status: order.status,
+settlementStatus: order.settlementStatus
             }
         });
 
@@ -154,7 +155,7 @@ const getOrderHistory = async (req, res) => {
 
         const orders = await Order.find({ user: userId })
             .select(
-    "reference type coin coinAmount orderAmount processingFee processingFeeRate finalAmount status createdAt processingAttempts lastProcessingAttempt nextProcessingAt processingHistory"
+    "reference type coin network coinAmount orderAmount processingFee processingFeeRate finalAmount status settlementStatus createdAt processingAttempts lastProcessingAttempt nextProcessingAt processingHistory"
 )
             .sort({ createdAt: -1 })
             .lean();
@@ -170,6 +171,8 @@ const getOrderHistory = async (req, res) => {
     processingFeeRate: order.processingFeeRate,
     finalAmount: order.finalAmount,
     status: order.status,
+    settlementStatus: order.settlementStatus,
+network: order.network, 
     processingAttempts: order.processingAttempts,
     lastProcessingAttempt: order.lastProcessingAttempt,
     nextProcessingAt: order.nextProcessingAt,

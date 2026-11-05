@@ -2,6 +2,10 @@
 const { CronJob } = require("cron");
 const Order = require("../models/orderModel");
 
+const {
+    deductWalletAndSendCoin
+} = require("../services/walletOrderService");
+
 let isProcessingOrders = false;
 
 const RETRY_INTERVAL = 5 * 60 * 1000;
@@ -26,14 +30,22 @@ const processPendingOrders = async () => {
         const recovered = await Order.updateMany(
             {
                 type: "buy",
-    status: "processing",
-    claimedAt: { $lte: staleTime }
+                status: "processing",
+                claimedAt: { $lte: staleTime }
             },
             {
                 $set: {
                     status: "pending",
                     claimedAt: null,
                     nextProcessingAt: new Date()
+                },
+                $push: {
+                    processingHistory: {
+                        status: "pending",
+                        message:
+                            "Interrupted order processing recovered. Order returned to pending for another attempt.",
+                        checkedAt: new Date()
+                    }
                 }
             }
         );
@@ -47,14 +59,12 @@ const processPendingOrders = async () => {
         while (true) {
             const now = new Date();
 
-            // Atomically claim one due order.
+            // Atomically claim one due buy order.
             const order = await Order.findOneAndUpdate(
                 {
-                    
-    type: "buy",
-    status: "pending",
-    nextProcessingAt: { $lte: now }
-
+                    type: "buy",
+                    status: "pending",
+                    nextProcessingAt: { $lte: now }
                 },
                 {
                     $set: {
@@ -65,7 +75,7 @@ const processPendingOrders = async () => {
                 },
                 {
                     sort: { createdAt: 1 },
-                    new: true
+                    returnDocument: "after"
                 }
             );
 
@@ -76,10 +86,32 @@ const processPendingOrders = async () => {
 
             console.log(`Claimed order: ${order.reference}`);
 
-            try {
-                const message =
-                    "Order is awaiting independent processing confirmation.";
+            await Order.updateOne(
+                {
+                    _id: order._id,
+                    status: "processing"
+                },
+                {
+                    $push: {
+                        processingHistory: {
+                            status: "processing",
+                            message: "Order processing started.",
+                            checkedAt: new Date()
+                        }
+                    }
+                }
+            );
 
+            try {
+                // Run simulated wallet validation.
+                const walletResult =
+                    await deductWalletAndSendCoin(order._id);
+
+                const message =
+                    walletResult.message ||
+                    "Buy order validation completed.";
+
+                // Keep the order pending for another attempt.
                 await Order.updateOne(
                     {
                         _id: order._id,
@@ -145,7 +177,10 @@ const processPendingOrders = async () => {
         }
 
     } catch (error) {
-        console.error("Order cron error:", error.message);
+        console.error(
+            "Order cron error:",
+            error.message
+        );
     } finally {
         isProcessingOrders = false;
     }

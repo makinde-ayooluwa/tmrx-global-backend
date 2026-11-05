@@ -4,7 +4,14 @@ const mongoose = require("mongoose");
 const processingHistorySchema = new mongoose.Schema({
     status: {
         type: String,
-        enum: ["pending", "processing", "completed", "rejected", "error"],
+        enum: [
+    "pending",
+    "processing",
+    "completed",
+    "rejected",
+    "cancelled",
+    "error"
+],
         default: "pending"
     },
     message: {
@@ -97,7 +104,16 @@ const orderSchema = new mongoose.Schema({
         ],
         default: "pending"
     },
-
+settlementStatus: {
+    type: String,
+    enum: [
+        "not_started",
+        "pending_confirmation",
+        "confirmed",
+        "failed"
+    ],
+    default: "not_started"
+},
     processingAttempts: {
         type: Number,
         default: 0

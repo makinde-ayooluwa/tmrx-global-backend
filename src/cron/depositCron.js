@@ -3,7 +3,7 @@ const { CronJob } = require("cron");
 const Deposit = require("../models/depositModel");
 const Order = require("../models/orderModel");
 const { verifyDeposit } = require("../services/depositVerification");
-
+const { verifyCoinAndCreditWallet } = require("../services/walletOrderService")
 let isProcessingDeposits = false;
 
 const RETRY_INTERVAL = 5 * 60 * 1000;
@@ -19,31 +19,69 @@ const processPendingDeposits = async () => {
 
     try {
         console.log("Checking pending deposits...");
+
         const staleTime = new Date(
             Date.now() - LOCK_TIMEOUT
         );
 
-        const recovered = await Deposit.updateMany(
-            {
-                status: "verifying",
-                claimedAt: { $lte: staleTime }
-            },
-            {
-                $set: {
-                    status: "pending",
-                    claimedAt: null,
-                    nextVerificationAt: new Date(),
-                    verificationMessage:
-                        "Previous verification was interrupted. Retrying."
-                }
-            }
-        );
+        // Recover deposits whose verification was interrupted.
+        // Recover deposits whose verification was interrupted.
+        const staleDeposits = await Deposit.find({
+            status: "verifying",
+            claimedAt: { $lte: staleTime }
+        });
 
-        if (recovered.modifiedCount > 0) {
+        for (const deposit of staleDeposits) {
+            const recoveryResult = await Deposit.updateOne(
+                {
+                    _id: deposit._id,
+                    status: "verifying",
+                    claimedAt: { $lte: staleTime }
+                },
+                {
+                    $set: {
+                        status: "pending",
+                        claimedAt: null,
+                        nextVerificationAt: new Date(),
+                        verificationMessage:
+                            "Previous verification was interrupted. Retrying."
+                    },
+                    $push: {
+                        verificationHistory: {
+                            status: "recovered",
+                            message:
+                                "Interrupted verification recovered. Deposit returned to pending.",
+                            checkedAt: new Date()
+                        }
+                    }
+                }
+            );
+
+            // Reset the order only if the deposit was successfully recovered.
+            if (recoveryResult.modifiedCount > 0) {
+                await Order.updateOne(
+                    {
+                        _id: deposit.order,
+                        type: "sell",
+                        status: "processing"
+                    },
+                    {
+                        $set: {
+                            status: "pending",
+                            claimedAt: null,
+                            nextProcessingAt: new Date()
+                        }
+                    }
+                );
+            }
+        }
+
+        if (staleDeposits.length > 0) {
             console.log(
-                `Recovered ${recovered.modifiedCount} interrupted deposit(s).`
+                `Recovered ${staleDeposits.length} interrupted deposit(s) and their sell orders.`
             );
         }
+
         while (true) {
             const now = new Date();
 
@@ -62,7 +100,7 @@ const processPendingDeposits = async () => {
                 },
                 {
                     sort: { createdAt: 1 },
-                    new: true
+                    returnDocument: "after"
                 }
             );
 
@@ -70,49 +108,108 @@ const processPendingDeposits = async () => {
                 console.log("No more deposits are due.");
                 break;
             }
-const order = await Order.findById(deposit.order);
-
-if (!order) {
-    await Deposit.updateOne(
-        { _id: deposit._id, status: "verifying" },
-        {
-            $set: {
-                status: "rejected",
-                claimedAt: null,
-                verificationMessage: "Associated sell order not found."
-            }
-        }
-    );
-
-    console.log(`Deposit ${deposit._id}: associated order not found.`);
-    continue;
-}
+            await Deposit.updateOne(
+                {
+                    _id: deposit._id,
+                    status: "verifying"
+                },
+                {
+                    $push: {
+                        verificationHistory: {
+                            status: "verifying",
+                            message: "Deposit verification started.",
+                            checkedAt: new Date()
+                        }
+                    }
+                }
+            );
             console.log(`Claimed deposit: ${deposit._id}`);
-await Order.updateOne(
-    {
-        _id: order._id,
-        status: "pending"
-    },
-    {
-        $set: {
-            status: "processing",
-            claimedAt: new Date()
-        }
-    }
-);
-await Order.updateOne(
-    {
-        _id: order._id,
-        status: "processing"
-    },
-    {
-        $set: {
-            status: "pending",
-            claimedAt: null,
-            nextProcessingAt: nextVerificationAt
-        }
-    }
-);
+
+            // Find the associated sell order.
+            const order = await Order.findOne({
+                _id: deposit.order,
+                type: "sell"
+            });
+
+            if (!order) {
+                await Deposit.updateOne(
+                    {
+                        _id: deposit._id,
+                        status: "verifying"
+                    },
+                    {
+                        $set: {
+                            status: "rejected",
+                            claimedAt: null,
+                            verificationMessage:
+                                "Associated sell order not found."
+                        }
+                    }
+                );
+
+                console.log(
+                    `Deposit ${deposit._id}: associated sell order not found.`
+                );
+
+                continue;
+            }
+
+            // Mark the sell order as processing.
+            const claimedOrder = await Order.updateOne(
+                {
+                    _id: order._id,
+                    type: "sell",
+                    status: "pending"
+                },
+                {
+                    $set: {
+                        status: "processing",
+                        claimedAt: new Date()
+                    }
+                }
+            );
+
+            if (claimedOrder.modifiedCount === 0) {
+                await Deposit.updateOne(
+                    {
+                        _id: deposit._id,
+                        status: "verifying"
+                    },
+                    {
+                        $set: {
+                            status: "pending",
+                            claimedAt: null,
+                            nextVerificationAt: new Date(
+                                Date.now() + RETRY_INTERVAL
+                            ),
+                            verificationMessage:
+                                "Sell order is not available for processing."
+                        }
+                    }
+                );
+
+                console.log(
+                    `Deposit ${deposit._id}: sell order was not pending.`
+                );
+
+                continue;
+            }
+            await Order.updateOne(
+                {
+                    _id: order._id,
+                    type: "sell",
+                    status: "processing"
+                },
+                {
+                    $push: {
+                        processingHistory: {
+                            status: "processing",
+                            message: "Sell order processing started. Deposit verification is pending.",
+                            checkedAt: new Date()
+                        }
+                    }
+                }
+            );
             try {
                 const verification = await verifyDeposit({
                     coin: deposit.coin,
@@ -122,11 +219,17 @@ await Order.updateOne(
                     depositAddress: deposit.depositAddress
                 });
 
-                const message = verification?.message ||
-                    "Verification provider is unavailable.";
+                const walletResult = await verifyCoinAndCreditWallet(
+    deposit._id
+);
+
+const message = walletResult.message;
+                const nextVerificationAt = new Date(
+                    Date.now() + RETRY_INTERVAL
+                );
 
                 // Keep this workflow in simulation.
-                // Never approve or deliver coins automatically.
+                // Never approve deposits or deliver coins automatically.
                 await Deposit.updateOne(
                     {
                         _id: deposit._id,
@@ -135,9 +238,8 @@ await Order.updateOne(
                     {
                         $set: {
                             status: "pending",
-                            nextVerificationAt: new Date(
-                                Date.now() + RETRY_INTERVAL
-                            ),
+                            claimedAt: null,
+                            nextVerificationAt,
                             verificationMessage: message
                         },
                         $inc: {
@@ -153,6 +255,22 @@ await Order.updateOne(
                     }
                 );
 
+                // Return the sell order to pending for another attempt.
+                await Order.updateOne(
+                    {
+                        _id: order._id,
+                        type: "sell",
+                        status: "processing"
+                    },
+                    {
+                        $set: {
+                            status: "pending",
+                            claimedAt: null,
+                            nextProcessingAt: nextVerificationAt
+                        }
+                    }
+                );
+
                 console.log(
                     `Deposit ${deposit._id}: ${message}`
                 );
@@ -163,6 +281,10 @@ await Order.updateOne(
                     error.message
                 );
 
+                const nextVerificationAt = new Date(
+                    Date.now() + RETRY_INTERVAL
+                );
+
                 await Deposit.updateOne(
                     {
                         _id: deposit._id,
@@ -171,9 +293,8 @@ await Order.updateOne(
                     {
                         $set: {
                             status: "pending",
-                            nextVerificationAt: new Date(
-                                Date.now() + RETRY_INTERVAL
-                            ),
+                            claimedAt: null,
+                            nextVerificationAt,
                             verificationMessage: error.message
                         },
                         $inc: {
@@ -188,11 +309,30 @@ await Order.updateOne(
                         }
                     }
                 );
+
+                // Also reset the associated sell order after an error.
+                await Order.updateOne(
+                    {
+                        _id: order._id,
+                        type: "sell",
+                        status: "processing"
+                    },
+                    {
+                        $set: {
+                            status: "pending",
+                            claimedAt: null,
+                            nextProcessingAt: nextVerificationAt
+                        }
+                    }
+                );
             }
         }
 
     } catch (error) {
-        console.error("Deposit cron error:", error.message);
+        console.error(
+            "Deposit cron error:",
+            error.message
+        );
     } finally {
         isProcessingDeposits = false;
     }

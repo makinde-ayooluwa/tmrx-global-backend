@@ -4,14 +4,21 @@ const mongoose = require("mongoose");
 const verificationHistorySchema = new mongoose.Schema({
     status: {
         type: String,
-        enum: ["pending", "verified", "rejected", "error"],
+        enum: [
+            "pending",
+            "verifying",
+            "verified",
+            "rejected",
+            "error",
+            "recovered"
+        ],
         default: "pending"
     },
     message: {
         type: String,
         default: ""
     },
-    
+
     checkedAt: {
         type: Date,
         default: Date.now
@@ -23,10 +30,10 @@ const depositSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-order: {
-    type: String,
-    required: true
-},
+    order: {
+        type: String,
+        required: true
+    },
     coin: {
         type: String,
         required: true,
@@ -56,10 +63,26 @@ order: {
 
     status: {
         type: String,
-        enum: ["pending", "verifying", "verified", "rejected"],
+        enum: [
+            "pending",
+            "verifying",
+            "verified",
+            "rejected",
+            "error",
+            "recovered"
+        ],
         default: "pending"
     },
-
+    settlementStatus: {
+        type: String,
+        enum: [
+            "not_started",
+            "pending_confirmation",
+            "confirmed",
+            "failed"
+        ],
+        default: "not_started"
+    },
     verificationMessage: {
         type: String,
         default: "Awaiting verification"
@@ -74,10 +97,10 @@ order: {
         type: Date,
         default: null
     },
-claimedAt: {
-    type: Date,
-    default: null
-},
+    claimedAt: {
+        type: Date,
+        default: null
+    },
     nextVerificationAt: {
         type: Date,
         default: Date.now
